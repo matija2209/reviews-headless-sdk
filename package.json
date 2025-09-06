@@ -31,7 +31,6 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-org/alexa-maxa-nextjs",
-    "directory": "packages/reviews-sdk"
+    "url": "https://github.com/matija2209/reviews-headless-sdk"
   }
 }
