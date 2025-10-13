@@ -124,6 +124,7 @@ export class ReviewsSDK {
 
   /**
    * CREATE: Submit new review
+   * Note: productHandle is optional - API will look it up from Shopify automatically
    */
   async create(data: CreateReviewData): Promise<SingleReviewAPIResponse> {
     // Validate required fields
@@ -132,6 +133,15 @@ export class ReviewsSDK {
         'Product ID is required',
         'VALIDATION_ERROR',
         'Please provide a valid product ID'
+      );
+    }
+
+    // Validate productId is numeric only
+    if (!/^\d+$/.test(data.productId)) {
+      throw new ReviewsSDKError(
+        'Product ID must be numeric only (e.g., "9686783951190")',
+        'VALIDATION_ERROR',
+        'Do not use full Shopify GID format. Use numeric ID only.'
       );
     }
 
@@ -148,6 +158,16 @@ export class ReviewsSDK {
         'Rating is required',
         'VALIDATION_ERROR',
         'Please provide a rating'
+      );
+    }
+
+    // Validate rating is a string between "1" and "5"
+    const ratingNum = parseInt(data.rating, 10);
+    if (isNaN(ratingNum) || ratingNum < 1 || ratingNum > 5) {
+      throw new ReviewsSDKError(
+        'Rating must be a string between "1" and "5"',
+        'VALIDATION_ERROR',
+        'Please provide a valid rating'
       );
     }
 
@@ -272,5 +292,16 @@ export class ReviewsSDK {
     });
 
     return this.request<ReviewsAPIResponse>(`/api/v1/reviews?${params}`);
+  }
+
+  /**
+   * LIST: Alias for getByProduct() - more intuitive naming
+   * Fetches approved reviews for a specific product
+   */
+  async list(
+    productId: string,
+    filters: ReviewFilters = {}
+  ): Promise<ReviewsAPIResponse> {
+    return this.getByProduct(productId, filters);
   }
 }

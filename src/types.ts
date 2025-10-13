@@ -16,13 +16,13 @@ export interface ReviewFilters {
 
 // Request Types for CRUD operations
 export interface CreateReviewRequest {
-  productId: string;
-  productHandle: string;
-  rating: string;
+  productId: string; // Numeric ID only (e.g., "9686783951190")
+  productHandle?: string; // Optional - API will look it up automatically
+  rating: string; // Must be string "1" to "5"
   title?: string;
   customerName: string;
   customerEmail?: string;
-  description: string;
+  description?: string; // Optional field
   intent: 'create';
 }
 

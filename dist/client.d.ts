@@ -16,6 +16,7 @@ export declare class ReviewsSDK {
     getById(reviewId: string): Promise<SingleReviewAPIResponse>;
     /**
      * CREATE: Submit new review
+     * Note: productHandle is optional - API will look it up from Shopify automatically
      */
     create(data: CreateReviewData): Promise<SingleReviewAPIResponse>;
     /**
@@ -38,4 +39,9 @@ export declare class ReviewsSDK {
      * Get pending reviews (admin operation)
      */
     getPending(filters?: ReviewFilters): Promise<ReviewsAPIResponse>;
+    /**
+     * LIST: Alias for getByProduct() - more intuitive naming
+     * Fetches approved reviews for a specific product
+     */
+    list(productId: string, filters?: ReviewFilters): Promise<ReviewsAPIResponse>;
 }

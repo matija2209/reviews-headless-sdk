@@ -19,23 +19,26 @@ const reviewsSDK = new ReviewsSDK({
   timeout: 30000, // optional, defaults to 30 seconds
 });
 
-// Get reviews for a product
-const reviews = await reviewsSDK.getByProduct('product-id', {
+// Get reviews for a product (use numeric ID only)
+const reviews = await reviewsSDK.getByProduct('9686783951190', {
   page: 1,
   limit: 10,
   sortBy: 'submittedAt',
   sortOrder: 'desc'
 });
 
-// Create a new review
+// Or use the list() alias
+const reviews = await reviewsSDK.list('9686783951190');
+
+// Create a new review (productId must be numeric only, productHandle is optional)
 const newReview = await reviewsSDK.create({
-  productId: 'gid://shopify/Product/123',
-  productHandle: 'product-handle',
-  rating: '5',
+  productId: '9686783951190', // Numeric ID only, NOT full GID
+  rating: '5',                 // Must be string "1" to "5"
   title: 'Great product!',
   customerName: 'John Doe',
   customerEmail: 'john@example.com',
   description: 'Really loved this product!'
+  // productHandle is optional - API looks it up automatically
 });
 ```
 
@@ -62,17 +65,25 @@ new ReviewsSDK(config: ReviewsSDKConfig)
 
 ### Methods
 
-#### `getByProduct(productId, filters?)`
+#### `getByProduct(productId, filters?)` or `list(productId, filters?)`
 
 Get reviews for a specific product with optional filtering.
 
+**Important:** `productId` must be numeric only (e.g., "9686783951190"), NOT the full Shopify GID format.
+
 ```typescript
-const reviews = await reviewsSDK.getByProduct('product-id', {
+const reviews = await reviewsSDK.getByProduct('9686783951190', {
   rating: 5,           // Filter by rating (1-5 or "all")
   sortBy: 'rating',    // Sort by 'submittedAt' or 'rating'
   sortOrder: 'desc',   // 'asc' or 'desc'
   page: 1,             // Page number
   limit: 10            // Results per page
+});
+
+// Or use the more intuitive list() alias
+const reviews = await reviewsSDK.list('9686783951190', {
+  page: 1,
+  limit: 10
 });
 ```
 
@@ -88,16 +99,25 @@ const review = await reviewsSDK.getById('review-id');
 
 Create a new review.
 
+**Important Notes:**
+- `productId` must be **numeric only** (e.g., "9686783951190"), NOT the full Shopify GID
+- `rating` must be a **string** between "1" and "5"
+- `productHandle` is **optional** - the API will automatically look it up from Shopify
+- `description` is **optional**
+
 ```typescript
 const newReview = await reviewsSDK.create({
-  productId: 'gid://shopify/Product/123',
-  productHandle: 'product-handle',
-  rating: '5',
+  productId: '9686783951190',  // ✅ Correct: Numeric ID only
+  // productHandle is optional - API looks it up automatically
+  rating: '5',                  // ✅ Must be string
   title: 'Great product!',
   customerName: 'John Doe',
   customerEmail: 'john@example.com',
-  description: 'Really loved this product!'
+  description: 'Really loved this product!' // Optional
 });
+
+// ❌ Wrong - Do not use full Shopify GID
+// productId: 'gid://shopify/Product/123' // This will throw an error
 ```
 
 #### `update(reviewId, data)`
@@ -206,18 +226,26 @@ export default async function ProductPage({ params }) {
 "use server";
 
 import { reviewsSDK } from '@/lib/reviews/sdk-instance';
+import { ReviewsSDKError } from '@alexa-maxa/reviews-sdk';
 
 export async function submitReview(formData: FormData) {
   try {
     const result = await reviewsSDK.create({
-      productId: formData.get('productId'),
-      productHandle: formData.get('productHandle'),
-      // ... other fields
+      productId: formData.get('productId') as string, // Numeric ID only
+      rating: formData.get('rating') as string,        // String "1" to "5"
+      title: formData.get('title') as string,
+      customerName: formData.get('customerName') as string,
+      customerEmail: formData.get('customerEmail') as string,
+      description: formData.get('description') as string,
+      // productHandle is optional - omit it to let API look it up
     });
-    
+
     return { success: true, data: result };
   } catch (error) {
-    return { success: false, error: error.message };
+    if (error instanceof ReviewsSDKError) {
+      return { success: false, error: error.message, code: error.code };
+    }
+    return { success: false, error: 'An unexpected error occurred' };
   }
 }
 ```
@@ -227,13 +255,24 @@ export async function submitReview(formData: FormData) {
 ```typescript
 // app/api/reviews/[productId]/route.ts
 import { reviewsSDK } from '@/lib/reviews/sdk-instance';
+import { ReviewsSDKError } from '@alexa-maxa/reviews-sdk';
 
-export async function GET(request: Request, { params }) {
+export async function GET(
+  request: Request,
+  { params }: { params: { productId: string } }
+) {
   try {
-    const reviews = await reviewsSDK.getByProduct(params.productId);
+    // params.productId should be numeric (e.g., "9686783951190")
+    const reviews = await reviewsSDK.list(params.productId);
     return Response.json(reviews);
   } catch (error) {
-    return Response.json({ error: error.message }, { status: 500 });
+    if (error instanceof ReviewsSDKError) {
+      return Response.json(
+        { error: error.message, code: error.code },
+        { status: error.status || 500 }
+      );
+    }
+    return Response.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 ```

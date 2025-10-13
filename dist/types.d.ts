@@ -12,12 +12,12 @@ export interface ReviewFilters {
 }
 export interface CreateReviewRequest {
     productId: string;
-    productHandle: string;
+    productHandle?: string;
     rating: string;
     title?: string;
     customerName: string;
     customerEmail?: string;
-    description: string;
+    description?: string;
     intent: 'create';
 }
 export interface UpdateReviewRequest {

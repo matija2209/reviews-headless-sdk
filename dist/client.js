@@ -84,17 +84,27 @@ class ReviewsSDK {
     }
     /**
      * CREATE: Submit new review
+     * Note: productHandle is optional - API will look it up from Shopify automatically
      */
     async create(data) {
         // Validate required fields
         if (!data.productId) {
             throw new errors_1.ReviewsSDKError('Product ID is required', 'VALIDATION_ERROR', 'Please provide a valid product ID');
         }
+        // Validate productId is numeric only
+        if (!/^\d+$/.test(data.productId)) {
+            throw new errors_1.ReviewsSDKError('Product ID must be numeric only (e.g., "9686783951190")', 'VALIDATION_ERROR', 'Do not use full Shopify GID format. Use numeric ID only.');
+        }
         if (!data.customerName) {
             throw new errors_1.ReviewsSDKError('Customer name is required', 'VALIDATION_ERROR', 'Please provide a customer name');
         }
         if (!data.rating) {
             throw new errors_1.ReviewsSDKError('Rating is required', 'VALIDATION_ERROR', 'Please provide a rating');
+        }
+        // Validate rating is a string between "1" and "5"
+        const ratingNum = parseInt(data.rating, 10);
+        if (isNaN(ratingNum) || ratingNum < 1 || ratingNum > 5) {
+            throw new errors_1.ReviewsSDKError('Rating must be a string between "1" and "5"', 'VALIDATION_ERROR', 'Please provide a valid rating');
         }
         const requestData = {
             ...data,
@@ -182,6 +192,13 @@ class ReviewsSDK {
             isApproved: 'false', // Only pending reviews
         });
         return this.request(`/api/v1/reviews?${params}`);
+    }
+    /**
+     * LIST: Alias for getByProduct() - more intuitive naming
+     * Fetches approved reviews for a specific product
+     */
+    async list(productId, filters = {}) {
+        return this.getByProduct(productId, filters);
     }
 }
 exports.ReviewsSDK = ReviewsSDK;
