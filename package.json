@@ -1,5 +1,5 @@
 {
-  "name": "reviews-headless-sdk",
+  "name": "@alexa-maxa/reviews-sdk",
   "version": "1.0.1",
   "description": "TypeScript SDK for Reviews Headless API",
   "main": "dist/index.js",
